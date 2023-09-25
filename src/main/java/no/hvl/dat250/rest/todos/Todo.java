@@ -20,15 +20,15 @@ public class Todo {
         this(null, summary, description);
     }
     public Long getId() {
-        return id;
+        return this.id;
     }
 
     public String getSummary() {
-        return summary;
+        return this.summary;
     }
 
     public String getDescription() {
-        return description;
+        return this.description;
     }
 
     public void setId(Long id) {
