@@ -1,90 +1,71 @@
 package no.hvl.dat250.rest.todos;
-import com.google.gson.Gson;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 /**
  * Rest-Endpoint for todos.
  */
 @RestController
-@RequestMapping("/todos")
+@CrossOrigin(origins = "http://localhost:4200")
 public class TodoController {
-  public static final String TODO_WITH_THE_ID_X_NOT_FOUND = "Todo with the id %s not found!";
-  private final Gson gson = new Gson();
   private List<Todo> todos = new ArrayList<>();
+  Long count = 0L;
+  public static final String TODO_WITH_THE_ID_X_NOT_FOUND = "Todo with the id %s not found!";
 
 
-  @PostMapping
-  public ResponseEntity<Todo> createTodo(@RequestBody Todo todo) {
-    try {
-      todo.setId(UUID.randomUUID().getMostSignificantBits());
-      todos.add(todo);
-      return new ResponseEntity<>(todo, HttpStatus.CREATED);
-    } catch (Exception e) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+
+  @PostMapping("/todos")
+  public Todo createTodo(@RequestBody Todo todo){
+    this.count += 1L;
+    todo.setId(count);
+    todos.add(todo);
+    return todo;
+  }
+
+  @GetMapping("/todos/{id}")
+  public ResponseEntity getTodo(@PathVariable Long id) throws IOException {
+    for (Todo todo : todos) {
+      if (todo.getId() == id) {
+        return ResponseEntity.ok(todo);
+      }
     }
+    String msg = String.format(TODO_WITH_THE_ID_X_NOT_FOUND, id);
+    return ResponseEntity.ok(msg);
+  }
+
+
+
+  @PutMapping("/{id}")
+  public Todo updateTodo(@PathVariable Long id, @RequestBody Todo updatedTodo){
+    Todo todo = findTodoById(id);
+    todo.setSummary(updatedTodo.getSummary());
+    todo.setDescription(updatedTodo.getDescription());
+    return todo;
   }
 
   public Todo findTodoById(Long id){
     for (Todo todo : todos){
       Long todo_id = todo.getId();
-      if (todo_id.equals(id)){
+      if (todo_id == id){
         return todo;
       }
     }
     return null;
   }
 
-  @GetMapping("/{id}")
-  public ResponseEntity<?> getTodoById(@PathVariable Long id) {
-    try {
-      Todo todo = findTodoById(id);
-
-      if (todo != null) {
-        return new ResponseEntity<>(todo, HttpStatus.OK);
-      } else {
-        String errorMessage = String.format(TODO_WITH_THE_ID_X_NOT_FOUND, id);
-        return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
-      }
-    } catch (Exception e) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
-
-  @GetMapping
-  public ResponseEntity<List<Todo>> getAllTodos() {
-    try {
-      if (!todos.isEmpty()) {
-        return new ResponseEntity<>(todos, HttpStatus.OK);
-      } else {
-        return new ResponseEntity<>(Collections.emptyList(), HttpStatus.OK);
-      }
-    } catch (Exception e) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+@GetMapping("/todos")
+  public List<Todo> getAllTodos(){
+    return todos;
   }
 
 
-  @PutMapping("/{id}")
-  public ResponseEntity<Todo> updateTodo(@PathVariable Long id, @RequestBody Todo updatedTodo) {
-    try {
-      Todo existingTodo = findTodoById(id);
-
-      if (existingTodo != null) {
-        existingTodo.setSummary(updatedTodo.getSummary());
-        existingTodo.setDescription(updatedTodo.getDescription());
-
-        return new ResponseEntity<>(existingTodo, HttpStatus.OK);
-      } else {
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-      }
-    } catch (Exception e) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
 
   private boolean deleteTodoById(Long id) {
     Todo todoToDelete = null;
@@ -103,20 +84,14 @@ public class TodoController {
     }
   }
 
-  @DeleteMapping("/{id}")
-  public ResponseEntity<?> deleteTodo(@PathVariable Long id) {
-    try {
-      boolean deleted = deleteTodoById(id);
+  @DeleteMapping("/todos/{id}")
+  public ResponseEntity deleteTodo(@PathVariable String id) {
+    boolean deleted = deleteTodoById(Long.parseLong(id));
 
-      if (deleted) {
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-      } else {
-        String errorMessage = String.format(TODO_WITH_THE_ID_X_NOT_FOUND, id);
-        return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
-      }
-    } catch (Exception e) {
-      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    if (deleted) {
+      return ResponseEntity.noContent().build();
     }
+    String msg = String.format(TODO_WITH_THE_ID_X_NOT_FOUND, id);
+    return ResponseEntity.ok(msg);
   }
-
 }
